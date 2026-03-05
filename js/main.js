@@ -1,5 +1,23 @@
 Vue.component('column', {
-    
+    template: `
+        <div class="column">
+            <h2>{{ title }}</h2>
+            <card 
+                v-for="card in cards" 
+                :card="card"
+            ></card>
+        </div>
+    `,
+    props: {
+        title: {
+            type: String,
+            required: true
+        },
+        cards: {
+            type: Array,
+            required: true
+        }
+    }
 })
 
 Vue.component('card', {
@@ -11,12 +29,16 @@ Vue.component('card', {
             <p>Дата создания: {{ card.creationDate }}</p>
         </div>
     `,
-
     props: {
         card: {
             type: Object,
             required: true
         } 
+    },
+    methods: {
+        updateCard() {
+
+        }
     }
 })
 
@@ -71,10 +93,12 @@ Vue.component('board', {
         <div>
             <h1>Kanban-доска</h1>
             <card-form @card-submitted="addCard"></card-form>
-            <card 
-                v-for="card in cards" 
-                :card="card"
-            ></card>
+            <div class="columns">
+                <column :cards="cards" title="Запланированные задачи"></column>
+                <column :cards="cards" title="Задачи в работе"></column>
+                <column :cards="cards" title="Тестирование"></column>
+                <column :cards="cards" title="Выполненные задачи"></column>
+            </div>
         </div>
     `,
     data() {
