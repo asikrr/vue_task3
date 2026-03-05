@@ -4,7 +4,9 @@ Vue.component('column', {
             <h2>{{ title }}</h2>
             <card 
                 v-for="card in cards" 
+                :key="card.id"
                 :card="card"
+                @delete="$emit('delete', $event)"
             ></card>
         </div>
     `,
@@ -22,11 +24,32 @@ Vue.component('column', {
 
 Vue.component('card', {
     template: `
-        <div class="card">
-            <p>{{ card.title }}</p>
-            <p>{{ card.description }}</p>
-            <p>Дэдлайн: {{ card.deadline }}</p>
-            <p>Дата создания: {{ card.creationDate }}</p>
+         <div class="card">
+            
+            <div v-if="!isEditing">
+                <h3>{{ card.title }}</h3>
+                <p>{{ card.description }}</p>
+                <p>Дэдлайн: {{ card.deadline }}</p>
+                <p>Создано: {{ card.creationDate }}</p>
+                <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
+
+                <button @click="isEditing=true">Редактировать</button>
+                <button @click="$emit('delete', card.id)">Удалить</button>
+            </div>
+
+            <div v-else class="edit-form">
+                <label>Название:</label>
+                <input type="text" v-model="card.title">
+                
+                <label>Описание:</label>
+                <textarea v-model="card.description"></textarea>
+                
+                <label>Дэдлайн:</label>
+                <input type="date" v-model="card.deadline">
+                
+                <button @click="saveCard">Готово</button>
+            </div>
+
         </div>
     `,
     props: {
@@ -35,9 +58,15 @@ Vue.component('card', {
             required: true
         } 
     },
+    data() {
+        return {
+            isEditing: false 
+        }
+    },
     methods: {
-        updateCard() {
-
+        saveCard() {
+            this.isEditing = false;
+            this.card.lastEdited = new Date().toLocaleString();
         }
     }
 })
@@ -78,7 +107,8 @@ Vue.component('card-form', {
                 title: this.title,
                 description: this.description,
                 deadline: this.deadline,
-                creationDate: new Date().toLocaleString()
+                creationDate: new Date().toLocaleString(),
+                id: Date.now()
             }
             this.$emit('card-submitted', card);
             this.title = '',
@@ -94,10 +124,10 @@ Vue.component('board', {
             <h1>Kanban-доска</h1>
             <card-form @card-submitted="addCard"></card-form>
             <div class="columns">
-                <column :cards="cards" title="Запланированные задачи"></column>
-                <column :cards="cards" title="Задачи в работе"></column>
-                <column :cards="cards" title="Тестирование"></column>
-                <column :cards="cards" title="Выполненные задачи"></column>
+                <column :cards="cards" title="Запланированные задачи" @delete="deleteCard"></column>
+                <column title="Задачи в работе" @delete="deleteCard"></column>
+                <column title="Тестирование" @delete="deleteCard"></column>
+                <column title="Выполненные задачи" @delete="deleteCard"></column>
             </div>
         </div>
     `,
@@ -109,6 +139,9 @@ Vue.component('board', {
     methods: {
         addCard(card) {
             this.cards.unshift(card);
+        },
+        deleteCard(id) {
+            this.cards = this.cards.filter(card => card.id !== id);
         }
     },
 })
