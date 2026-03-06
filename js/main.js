@@ -2,6 +2,13 @@ Vue.component('column', {
     template: `
         <div class="column">
             <h2>{{ title }}</h2>
+            <div v-if="id === 1">
+                <button v-if="!showForm" @click="showForm = true">Создать задачу</button>
+                <div v-else>
+                    <card-form @card-submitted="onCardCreated"></card-form>
+                    <button @click="showForm = false">Отмена</button>
+                </div>
+            </div>
             <card 
                 v-for="card in cards" 
                 :key="card.id"
@@ -23,6 +30,17 @@ Vue.component('column', {
         id: {
             type: Number,
             required: true
+        }
+    },
+    data() {
+        return {
+            showForm: false
+        }
+    },
+    methods: {
+        onCardCreated(card) {
+            this.showForm = false;
+            this.$emit('create-card', card);
         }
     }
 })
@@ -186,7 +204,6 @@ Vue.component('board', {
     template: `
         <div>
             <h1>Kanban-доска</h1>
-            <card-form @card-submitted="addCard"></card-form>
             <div class="columns">
                 <column 
                     v-for="col in columns" 
@@ -195,6 +212,7 @@ Vue.component('board', {
                     :cards="cards.filter(card => card.colNumber === col.id)"
                     @delete="deleteCard"
                     @move="moveCard"
+                    @create-card="addCard"
                 ></column>
             </div>
         </div>
