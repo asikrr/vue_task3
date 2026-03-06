@@ -49,7 +49,7 @@ Vue.component('card', {
                 <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
                 
                 <button 
-                    @click="showReturnInput = true"
+                    @click="showReturnInput = true; returnReasonText = ''; returnError = ''"
                     v-if="card.colNumber === 3"
                 >
                     Переместить влево
@@ -64,20 +64,16 @@ Vue.component('card', {
             </div>
 
             <div v-else-if="isEditing" class="edit-form">
-                <label>Название:</label>
-                <input type="text" v-model="card.title">
-                
-                <label>Описание:</label>
-                <textarea v-model="card.description"></textarea>
-                
-                <label>Дэдлайн:</label>
-                <input type="date" v-model="card.deadline">
-                
-                <button @click="saveCard">Готово</button>
+                <card-form 
+                    :initial-card="card"
+                    @card-submitted="saveCard"
+                ></card-form>
+                <button @click="isEditing=false">Отмена</button>
             </div>
 
             <div v-else-if="showReturnInput" class="return-form">
                 <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
+                <p v-if="returnError">{{ returnError }}</p>
                 <button @click="confirmReturn">Подтвердить</button>
                 <button @click="showReturnInput=false">Отмена</button>
             </div>
@@ -94,21 +90,31 @@ Vue.component('card', {
         return {
             isEditing: false,
             showReturnInput: false,
-            returnReasonText: ''
+            returnReasonText: '',
+            returnError: ''
         }
     },
     methods: {
-        saveCard() {
+        saveCard(updatedCard) {
+            this.card.title = updatedCard.title;
+            this.card.description = updatedCard.description;
+            this.card.deadline = updatedCard.deadline;
             this.isEditing = false;
             this.card.lastEdited = new Date().toLocaleString();
         },
         confirmReturn() {
-            this.$emit('move', { 
-                cardId: this.card.id, 
-                direction: 'left', 
-                reason: this.returnReasonText 
-            });
-            this.showReturnInput = false;
+            if (this.returnReasonText && this.returnReasonText.trim() !== '') {
+                this.$emit('move', { 
+                    cardId: this.card.id, 
+                    direction: 'left', 
+                    reason: this.returnReasonText 
+                });
+                this.showReturnInput = false;
+                this.returnError = '';
+            } 
+            else {
+                this.returnError = 'Поле обязательно для заполнения';
+            }
         }
     }
 })
@@ -118,44 +124,60 @@ Vue.component('card-form', {
         <form @submit.prevent="onSubmit">
             <div>
                 <label for="title">Название задачи</label>
-                <input type="text" id="title" v-model="title">
+                <input type="text" id="title" v-model="title" required>
             </div>
 
             <div>
                 <label for="description">Описание задачи</label>
-                <textarea id="description" v-model="description"></textarea>
+                <textarea id="description" v-model="description" required></textarea>
             </div>
 
             <div>
                 <label for="deadline">Дэдлайн</label>
-                <input type="date" id="deadline" v-model="deadline">
+                <input type="date" id="deadline" v-model="deadline" required>
             </div>
 
             <input type="submit" value="Сохранить">
         </form>
     `,
+    props: {
+        initialCard: {
+            type: Object,
+            default: null
+        }
+    },
     data() {
         return {
-            title: '',
-            description: '',
-            deadline: ''
+            title: this.initialCard ? this.initialCard.title : '',
+            description: this.initialCard ? this.initialCard.description : '',
+            deadline: this.initialCard ? this.initialCard.deadline : ''
         }
     },
     methods: {
         onSubmit(){
-            let card = {
-                title: this.title,
-                description: this.description,
-                deadline: this.deadline,
-                creationDate: new Date().toLocaleString(),
-                id: Date.now(),
-                colNumber: 1,
-                returnReason: null
+            if (this.initialCard) {
+                this.$emit('card-submitted', {
+                    title: this.title,
+                    description: this.description,
+                    deadline: this.deadline
+                });
+            } 
+            else {
+                let card = {
+                    title: this.title,
+                    description: this.description,
+                    deadline: this.deadline,
+                    creationDate: new Date().toLocaleString(),
+                    id: Date.now(),
+                    colNumber: 1,
+                    returnReason: null,
+                    isOverdue: false
+                }
+                this.$emit('card-submitted', card);
+                this.title = '';
+                this.description = '';
+                this.deadline = '';
             }
-            this.$emit('card-submitted', card);
-            this.title = '';
-            this.description = '';
-            this.deadline = '';
         }
     }
 })
@@ -168,7 +190,6 @@ Vue.component('board', {
             <div class="columns">
                 <column 
                     v-for="col in columns" 
-                    :key="col.id"
                     :title="col.title" 
                     :id="col.id"
                     :cards="cards.filter(card => card.colNumber === col.id)"
