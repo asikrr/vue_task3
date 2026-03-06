@@ -124,16 +124,23 @@ Vue.component('board', {
             <h1>Kanban-доска</h1>
             <card-form @card-submitted="addCard"></card-form>
             <div class="columns">
-                <column :cards="cards" title="Запланированные задачи" @delete="deleteCard"></column>
-                <column title="Задачи в работе" @delete="deleteCard"></column>
-                <column title="Тестирование" @delete="deleteCard"></column>
-                <column title="Выполненные задачи" @delete="deleteCard"></column>
+                <column 
+                    v-for="col in columns" 
+                    :title="col.title" 
+                    @delete="deleteCard"
+                ></column>
             </div>
         </div>
     `,
     data() {
         return {
-            cards: []
+            cards: [],
+            columns: [
+                { title: 'Запланированные задачи' }, 
+                { title: 'Задачи в работе' },
+                { title: 'Тестирование' },
+                { title: 'Выполненные задачи' }
+            ]
         }
     },
     methods: {
