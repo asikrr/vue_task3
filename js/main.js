@@ -45,7 +45,7 @@ Vue.component('card', {
                     <p v-else>Выполнена в срок</p>
                 </div>
 
-                <button @click="isEditing=true">Редактировать</button>
+                <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
                 <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
                 
                 <button 
@@ -100,7 +100,7 @@ Vue.component('card', {
     methods: {
         saveCard() {
             this.isEditing = false;
-            this.card.lastEdited = new Date().toISOString().split('T')[0];
+            this.card.lastEdited = new Date().toLocaleString();
         },
         confirmReturn() {
             this.$emit('move', { 
@@ -147,7 +147,7 @@ Vue.component('card-form', {
                 title: this.title,
                 description: this.description,
                 deadline: this.deadline,
-                creationDate: new Date().toISOString().split('T')[0],
+                creationDate: new Date().toLocaleString(),
                 id: Date.now(),
                 colNumber: 1,
                 returnReason: null
@@ -201,16 +201,15 @@ Vue.component('board', {
 
             if (direction === 'right') {
                 card.colNumber++;
-                
                 if (card.colNumber === 4) {
                     const today = new Date().toISOString().split('T')[0]; 
                     if (today > card.deadline) {
                         card.isOverdue = true;
-                    } else {
+                    } 
+                    else {
                         card.isOverdue = false;
                     }
                 }
-
             } 
             else {
                 card.colNumber = 2;
