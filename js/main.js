@@ -40,6 +40,11 @@ Vue.component('card', {
                     Причина возврата: {{ card.returnReason }}
                 </p>
 
+                <div v-if="card.colNumber === 4">
+                    <p v-if="card.isOverdue">Просрочена</p>
+                    <p v-else>Выполнена в срок</p>
+                </div>
+
                 <button @click="isEditing=true">Редактировать</button>
                 <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
                 
@@ -95,7 +100,7 @@ Vue.component('card', {
     methods: {
         saveCard() {
             this.isEditing = false;
-            this.card.lastEdited = new Date().toLocaleString();
+            this.card.lastEdited = new Date().toISOString().split('T')[0];
         },
         confirmReturn() {
             this.$emit('move', { 
@@ -142,7 +147,7 @@ Vue.component('card-form', {
                 title: this.title,
                 description: this.description,
                 deadline: this.deadline,
-                creationDate: new Date().toLocaleString(),
+                creationDate: new Date().toISOString().split('T')[0],
                 id: Date.now(),
                 colNumber: 1,
                 returnReason: null
@@ -196,7 +201,18 @@ Vue.component('board', {
 
             if (direction === 'right') {
                 card.colNumber++;
-            } else {
+                
+                if (card.colNumber === 4) {
+                    const today = new Date().toISOString().split('T')[0]; 
+                    if (today > card.deadline) {
+                        card.isOverdue = true;
+                    } else {
+                        card.isOverdue = false;
+                    }
+                }
+
+            } 
+            else {
                 card.colNumber = 2;
                 card.returnReason = reason;
             }
