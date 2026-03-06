@@ -41,7 +41,7 @@ Vue.component('card', {
                 </p>
 
                 <button @click="isEditing=true">Редактировать</button>
-                <button @click="$emit('delete', card.id)">Удалить</button>
+                <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
                 
                 <button 
                     @click="showReturnInput = true"
