@@ -30,20 +30,35 @@ Vue.component('column', {
 Vue.component('card', {
     template: `
          <div class="card">
-            <div v-if="!isEditing">
+            <div v-if="!isEditing && !showReturnInput">
                 <h3>{{ card.title }}</h3>
                 <p>{{ card.description }}</p>
                 <p>Дэдлайн: {{ card.deadline }}</p>
                 <p>Создано: {{ card.creationDate }}</p>
                 <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
+                <p v-if="card.returnReason && card.colNumber === 2">
+                    Причина возврата: {{ card.returnReason }}
+                </p>
 
                 <button @click="isEditing=true">Редактировать</button>
                 <button @click="$emit('delete', card.id)">Удалить</button>
-                <button @click="$emit('move', { cardId: card.id, direction: 'left' })" v-if="card.colNumber === 3">Переместить влево</button>
-                <button @click="$emit('move', { cardId: card.id, direction: 'right' })" v-if="card.colNumber < 4">Переместить вправо</button>
+                
+                <button 
+                    @click="showReturnInput = true"
+                    v-if="card.colNumber === 3"
+                >
+                    Переместить влево
+                </button>
+                
+                <button 
+                    @click="$emit('move', { cardId: card.id, direction: 'right' })" 
+                    v-if="card.colNumber < 4"
+                >
+                    Переместить вправо
+                </button>
             </div>
 
-            <div v-else class="edit-form">
+            <div v-else-if="isEditing" class="edit-form">
                 <label>Название:</label>
                 <input type="text" v-model="card.title">
                 
@@ -56,6 +71,12 @@ Vue.component('card', {
                 <button @click="saveCard">Готово</button>
             </div>
 
+            <div v-else-if="showReturnInput" class="return-form">
+                <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
+                <button @click="confirmReturn">Подтвердить</button>
+                <button @click="showReturnInput=false">Отмена</button>
+            </div>
+
         </div>
     `,
     props: {
@@ -66,13 +87,23 @@ Vue.component('card', {
     },
     data() {
         return {
-            isEditing: false
+            isEditing: false,
+            showReturnInput: false,
+            returnReasonText: ''
         }
     },
     methods: {
         saveCard() {
             this.isEditing = false;
             this.card.lastEdited = new Date().toLocaleString();
+        },
+        confirmReturn() {
+            this.$emit('move', { 
+                cardId: this.card.id, 
+                direction: 'left', 
+                reason: this.returnReasonText 
+            });
+            this.showReturnInput = false;
         }
     }
 })
@@ -113,7 +144,8 @@ Vue.component('card-form', {
                 deadline: this.deadline,
                 creationDate: new Date().toLocaleString(),
                 id: Date.now(),
-                colNumber: 1
+                colNumber: 1,
+                returnReason: null
             }
             this.$emit('card-submitted', card);
             this.title = '';
@@ -130,10 +162,11 @@ Vue.component('board', {
             <card-form @card-submitted="addCard"></card-form>
             <div class="columns">
                 <column 
-                    v-for="col in columnsWithCards" 
+                    v-for="col in columns" 
+                    :key="col.id"
                     :title="col.title" 
-                    :cards="col.cards"
                     :id="col.id"
+                    :cards="cards.filter(card => card.colNumber === col.id)"
                     @delete="deleteCard"
                     @move="moveCard"
                 ></column>
@@ -158,24 +191,15 @@ Vue.component('board', {
         deleteCard(id) {
             this.cards = this.cards.filter(card => card.id !== id);
         },
-        moveCard({ cardId, direction }) {
+        moveCard({ cardId, direction, reason }) {
             const card = this.cards.find(c => c.id === cardId);
-            if (card) {
-                if (direction === 'right' && card.colNumber < 4) {
-                    card.colNumber++;
-                } else if (direction === 'left' && card.colNumber === 3) {
-                    card.colNumber--;
-                }
+
+            if (direction === 'right') {
+                card.colNumber++;
+            } else {
+                card.colNumber = 2;
+                card.returnReason = reason;
             }
-        }
-    },
-    computed: {
-        columnsWithCards() {
-            return this.columns.map(({ id, title }) => ({
-                id,
-                title,
-                cards: this.cards.filter(card => card.colNumber === id)
-            }));
         }
     }
 })
