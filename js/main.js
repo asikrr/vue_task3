@@ -1,21 +1,22 @@
 Vue.component('column', {
     template: `
         <div class="column">
-            <h2>{{ title }}</h2>
-            <div v-if="id === 1">
-                <button v-if="!showForm" @click="showForm = true">Создать задачу</button>
-                <div v-else>
-                    <card-form @card-submitted="onCardCreated"></card-form>
-                    <button @click="showForm = false">Отмена</button>
+            <h2 :class="color">{{ title }}</h2>
+            <div class="column-content">
+                <div v-if="id === 1">
+                    <button v-if="!showForm" @click="showForm=true">Создать задачу</button>
+                    <div v-else>
+                        <card-form @card-submitted="onCardCreated"></card-form>
+                    </div>
                 </div>
+                <card 
+                    v-for="card in cards" 
+                    :key="card.id"
+                    :card="card"
+                    @delete="$emit('delete', $event)"
+                    @move="$emit('move', $event)"
+                ></card>
             </div>
-            <card 
-                v-for="card in cards" 
-                :key="card.id"
-                :card="card"
-                @delete="$emit('delete', $event)"
-                @move="$emit('move', $event)"
-            ></card>
         </div>
     `,
     props: {
@@ -30,6 +31,9 @@ Vue.component('column', {
         id: {
             type: Number,
             required: true
+        },
+        color: {
+            type: String
         }
     },
     data() {
@@ -49,36 +53,37 @@ Vue.component('card', {
     template: `
          <div class="card">
             <div v-if="!isEditing && !showReturnInput">
-                <h3>{{ card.title }}</h3>
-                <p>{{ card.description }}</p>
-                <p>Дэдлайн: {{ card.deadline }}</p>
-                <p>Создано: {{ card.creationDate }}</p>
-                <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
-                <p v-if="card.returnReason && card.colNumber === 2">
-                    Причина возврата: {{ card.returnReason }}
-                </p>
-
-                <div v-if="card.colNumber === 4">
-                    <p v-if="card.isOverdue">Просрочена</p>
-                    <p v-else>Выполнена в срок</p>
+                <div class="card-info">
+                    <h3>{{ card.title }}</h3>
+                    <p>{{ card.description }}</p>
+                    <p>Дэдлайн: {{ card.deadline }}</p>
+                    <p>Создано: {{ card.creationDate }}</p>
+                    <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
+                    <p v-if="card.returnReason && card.colNumber === 2">
+                        Причина возврата: {{ card.returnReason }}
+                    </p>
+                    <div v-if="card.colNumber === 4">
+                        <p v-if="card.isOverdue" class="dangerText">Просрочена</p>
+                        <p v-else class="safeText">Выполнена в срок</p>
+                    </div>
                 </div>
 
-                <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
-                <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
-                
-                <button 
-                    @click="showReturnInput = true; returnReasonText = ''; returnError = ''"
-                    v-if="card.colNumber === 3"
-                >
-                    Переместить влево
-                </button>
-                
-                <button 
-                    @click="$emit('move', { cardId: card.id, direction: 'right' })" 
-                    v-if="card.colNumber < 4"
-                >
-                    Переместить вправо
-                </button>
+                <div class="card-buttons">
+                    <button 
+                        @click="showReturnInput = true; returnReasonText = ''; returnError = ''"
+                        v-if="card.colNumber === 3"
+                    >
+                        &lt
+                    </button>
+                    <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
+                    <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
+                    <button 
+                        @click="$emit('move', { cardId: card.id, direction: 'right' })" 
+                        v-if="card.colNumber < 4"
+                    >
+                        &gt
+                    </button>
+                </div>
             </div>
 
             <div v-else-if="isEditing" class="edit-form">
@@ -209,6 +214,7 @@ Vue.component('board', {
                     v-for="col in columns" 
                     :title="col.title" 
                     :id="col.id"
+                    :color="col.color"
                     :cards="cards.filter(card => card.colNumber === col.id)"
                     @delete="deleteCard"
                     @move="moveCard"
@@ -221,10 +227,10 @@ Vue.component('board', {
         return {
             cards: [],
             columns: [
-                { id: 1, title: 'Запланированные задачи' }, 
-                { id: 2, title: 'Задачи в работе' },
-                { id: 3, title: 'Тестирование' },
-                { id: 4, title: 'Выполненные задачи' }
+                { id: 1, title: 'Запланированные задачи', color: 'col-plan' }, 
+                { id: 2, title: 'Задачи в работе', color: 'col-work' },
+                { id: 3, title: 'Тестирование', color: 'col-test' },
+                { id: 4, title: 'Выполненные задачи', color: 'col-done' }
             ]
         }
     },

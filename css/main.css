@@ -1,0 +1,148 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    max-width: 1920px;
+    margin: auto;
+    font-family: Arial, sans-serif;
+    background-color: #ffffff;
+}
+
+h2 {
+    line-height: 1;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+#app {
+    max-width: 1220px;
+    margin: auto;
+    padding-top: 70px;
+}
+
+.board {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.board h1 {
+    align-self: center;
+}
+
+.columns {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+}
+
+.column h2 {
+    border-radius: 10px 10px 0 0;
+    text-align: center;
+    padding: 20px;
+    overflow-wrap: break-word; 
+}
+
+.col-plan { 
+    background-color: #ffc1bc;  
+}
+
+.col-work { 
+    background-color: #c4eff7;
+}
+
+.col-test {
+    background-color: #ffe2bd;
+}
+
+.col-done { 
+    background-color: #bbf1b6;
+}
+
+.column-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 15px;
+}
+
+input {
+    padding: 10px 15px;
+    border-radius: 10px;
+}
+
+button, 
+input[type="submit"] {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 10px;
+    background-color: rgb(202, 202, 202);
+}
+
+button:hover, 
+input[type="submit"]:hover {
+    cursor: pointer;
+}
+
+textarea {
+    resize: none;
+    padding: 10px 15px;
+    border-radius: 10px;
+}
+
+.card-form, .card-form div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.card > div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.card p, 
+.card h3 {
+    overflow-wrap: break-word; 
+}
+
+.card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.card-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.safeText {
+    color: #4d9946;
+}
+
+.dangerText {
+    color: #c23926;
+}
