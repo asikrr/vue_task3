@@ -139,7 +139,7 @@ Vue.component('card', {
 
 Vue.component('card-form', {
     template: `
-        <form @submit.prevent="onSubmit">
+        <form class="card-form" @submit.prevent="onSubmit">
             <div>
                 <label for="title">Название задачи</label>
                 <input type="text" id="title" v-model="title" required>
@@ -202,7 +202,7 @@ Vue.component('card-form', {
 
 Vue.component('board', {
     template: `
-        <div>
+        <div class="board">
             <h1>Kanban-доска</h1>
             <div class="columns">
                 <column 
@@ -226,6 +226,19 @@ Vue.component('board', {
                 { id: 3, title: 'Тестирование' },
                 { id: 4, title: 'Выполненные задачи' }
             ]
+        }
+    },
+    mounted() {
+        if (localStorage.getItem('cards')) {
+            this.cards = JSON.parse(localStorage.getItem('cards'));
+        }
+    },
+    watch: {
+        cards: {
+            handler(newCards) {
+                localStorage.setItem('cards', JSON.stringify(newCards));
+            },
+            deep: true
         }
     },
     methods: {
