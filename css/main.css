@@ -139,10 +139,10 @@ textarea {
     gap: 5px;
 }
 
-.safeText {
+.safe-text {
     color: #4d9946;
 }
 
-.dangerText {
+.danger-text {
     color: #c23926;
 }

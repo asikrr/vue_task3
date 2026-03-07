@@ -64,8 +64,8 @@ Vue.component('card', {
                         Причина возврата: {{ card.returnReason }}
                     </p>
                     <div v-if="card.colNumber === 4">
-                        <p v-if="card.isOverdue" class="dangerText">Просрочена</p>
-                        <p v-else class="safeText">Выполнена в срок</p>
+                        <p v-if="card.isOverdue" class="danger-text">Просрочена</p>
+                        <p v-else class="safe-text">Выполнена в срок</p>
                     </div>
                 </div>
 
@@ -97,7 +97,7 @@ Vue.component('card', {
 
             <div v-else-if="showReturnInput" class="return-form">
                 <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
-                <p v-if="returnError" class="dangerText">{{ returnError }}</p>
+                <p v-if="returnError" class="danger-text">{{ returnError }}</p>
                 <button @click="confirmReturn">Подтвердить</button>
                 <button @click="showReturnInput=false">Отмена</button>
             </div>
