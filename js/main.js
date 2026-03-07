@@ -15,6 +15,7 @@ Vue.component('column', {
                     :card="card"
                     @delete="$emit('delete', $event)"
                     @move="$emit('move', $event)"
+                    @update-card="$emit('update-card', $event)"
                 ></card>
             </div>
         </div>
@@ -96,7 +97,7 @@ Vue.component('card', {
 
             <div v-else-if="showReturnInput" class="return-form">
                 <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
-                <p v-if="returnError">{{ returnError }}</p>
+                <p v-if="returnError" class="dangerText">{{ returnError }}</p>
                 <button @click="confirmReturn">Подтвердить</button>
                 <button @click="showReturnInput=false">Отмена</button>
             </div>
@@ -107,7 +108,7 @@ Vue.component('card', {
         card: {
             type: Object,
             required: true
-        } 
+        }
     },
     data() {
         return {
@@ -118,23 +119,26 @@ Vue.component('card', {
         }
     },
     methods: {
-        saveCard(updatedCard) {
-            this.card.title = updatedCard.title;
-            this.card.description = updatedCard.description;
-            this.card.deadline = updatedCard.deadline;
+        saveCard(updatedData) {
+            const updatedCard = Object.assign(
+                {},
+                this.card,
+                updatedData,
+                { lastEdited: new Date().toLocaleString() }
+            );
+            this.$emit('update-card', updatedCard);
             this.isEditing = false;
-            this.card.lastEdited = new Date().toLocaleString();
         },
         confirmReturn() {
             if (this.returnReasonText && this.returnReasonText.trim() !== '') {
-                this.$emit('move', { 
-                    cardId: this.card.id, 
-                    direction: 'left', 
-                    reason: this.returnReasonText 
+                this.$emit('move', {
+                    cardId: this.card.id,
+                    direction: 'left',
+                    reason: this.returnReasonText
                 });
                 this.showReturnInput = false;
                 this.returnError = '';
-            } 
+            }
             else {
                 this.returnError = 'Поле обязательно для заполнения';
             }
@@ -184,7 +188,7 @@ Vue.component('card-form', {
                     description: this.description,
                     deadline: this.deadline
                 });
-            } 
+            }
             else {
                 let card = {
                     title: this.title,
@@ -219,6 +223,7 @@ Vue.component('board', {
                     @delete="deleteCard"
                     @move="moveCard"
                     @create-card="addCard"
+                    @update-card="updateCard"
                 ></column>
             </div>
         </div>
@@ -227,7 +232,7 @@ Vue.component('board', {
         return {
             cards: [],
             columns: [
-                { id: 1, title: 'Запланированные задачи', color: 'col-plan' }, 
+                { id: 1, title: 'Запланированные задачи', color: 'col-plan' },
                 { id: 2, title: 'Задачи в работе', color: 'col-work' },
                 { id: 3, title: 'Тестирование', color: 'col-test' },
                 { id: 4, title: 'Выполненные задачи', color: 'col-done' }
@@ -254,21 +259,27 @@ Vue.component('board', {
         deleteCard(id) {
             this.cards = this.cards.filter(card => card.id !== id);
         },
+        updateCard(updatedCard) {
+            const index = this.cards.findIndex(card => card.id === updatedCard.id);
+            const newCards = [...this.cards];
+            newCards[index] = updatedCard;
+            this.cards = newCards;
+        },
         moveCard({ cardId, direction, reason }) {
             const card = this.cards.find(c => c.id === cardId);
 
             if (direction === 'right') {
                 card.colNumber++;
                 if (card.colNumber === 4) {
-                    const today = new Date().toISOString().split('T')[0]; 
+                    const today = new Date().toISOString().split('T')[0];
                     if (today > card.deadline) {
                         card.isOverdue = true;
-                    } 
+                    }
                     else {
                         card.isOverdue = false;
                     }
                 }
-            } 
+            }
             else {
                 card.colNumber = 2;
                 card.returnReason = reason;
