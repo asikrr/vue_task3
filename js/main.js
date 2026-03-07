@@ -13,9 +13,9 @@ Vue.component('column', {
                     v-for="card in cards" 
                     :key="card.id"
                     :card="card"
-                    @delete="$emit('delete', $event)"
-                    @move="$emit('move', $event)"
-                    @update-card="$emit('update-card', $event)"
+                    @delete="handleDelete"
+                    @move="handleMove"
+                    @update-card="handleUpdate"
                 ></card>
             </div>
         </div>
@@ -43,6 +43,15 @@ Vue.component('column', {
         }
     },
     methods: {
+        handleDelete(id) {
+            this.$emit('delete', id);
+        },
+        handleMove(payload) {
+            this.$emit('move', payload);
+        },
+        handleUpdate(updatedCard) {
+            this.$emit('update-card', updatedCard);
+        },
         onCardCreated(card) {
             this.showForm = false;
             this.$emit('create-card', card);
@@ -52,7 +61,7 @@ Vue.component('column', {
 
 Vue.component('card', {
     template: `
-         <div class="card">
+        <div class="card">
             <div v-if="!isEditing && !showReturnInput">
                 <div class="card-info">
                     <h3>{{ card.title }}</h3>
@@ -64,8 +73,8 @@ Vue.component('card', {
                         Причина возврата: {{ card.returnReason }}
                     </p>
                     <div v-if="card.colNumber === 4">
-                        <p v-if="card.isOverdue" class="danger-text">Просрочена</p>
-                        <p v-else class="safe-text">Выполнена в срок</p>
+                        <p v-if="card.isOverdue" class="dangerText">Просрочена</p>
+                        <p v-else class="safeText">Выполнена в срок</p>
                     </div>
                 </div>
 
@@ -77,9 +86,9 @@ Vue.component('card', {
                         &lt
                     </button>
                     <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
-                    <button @click="$emit('delete', card.id)" v-if="card.colNumber === 1">Удалить</button>
+                    <button @click="handleDelete" v-if="card.colNumber === 1">Удалить</button>
                     <button 
-                        @click="$emit('move', { cardId: card.id, direction: 'right' })" 
+                        @click="handleMoveRight" 
                         v-if="card.colNumber < 4"
                     >
                         &gt
@@ -97,11 +106,10 @@ Vue.component('card', {
 
             <div v-else-if="showReturnInput" class="return-form">
                 <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
-                <p v-if="returnError" class="danger-text">{{ returnError }}</p>
+                <p v-if="returnError">{{ returnError }}</p>
                 <button @click="confirmReturn">Подтвердить</button>
                 <button @click="showReturnInput=false">Отмена</button>
             </div>
-
         </div>
     `,
     props: {
@@ -119,6 +127,12 @@ Vue.component('card', {
         }
     },
     methods: {
+        handleDelete() {
+            this.$emit('delete', this.card.id);
+        },
+        handleMoveRight() {
+            this.$emit('move', { cardId: this.card.id, direction: 'right' });
+        },
         saveCard(updatedData) {
             const updatedCard = Object.assign(
                 {},
@@ -181,7 +195,7 @@ Vue.component('card-form', {
         }
     },
     methods: {
-        onSubmit(){
+        onSubmit() {
             if (this.initialCard) {
                 this.$emit('card-submitted', {
                     title: this.title,
@@ -260,12 +274,15 @@ Vue.component('board', {
             this.cards = this.cards.filter(card => card.id !== id);
         },
         updateCard(updatedCard) {
-            const index = this.cards.findIndex(card => card.id === updatedCard.id);
-            const newCards = [...this.cards];
-            newCards[index] = updatedCard;
-            this.cards = newCards;
+            const index = this.cards.findIndex(c => c.id === updatedCard.id);
+            if (index !== -1) {
+                const newCards = [...this.cards];
+                newCards[index] = updatedCard;
+                this.cards = newCards;
+            }
         },
-        moveCard({ cardId, direction, reason }) {
+        moveCard(payload) {
+            const { cardId, direction, reason } = payload;
             const card = this.cards.find(c => c.id === cardId);
 
             if (direction === 'right') {
@@ -274,13 +291,11 @@ Vue.component('board', {
                     const today = new Date().toISOString().split('T')[0];
                     if (today > card.deadline) {
                         card.isOverdue = true;
-                    }
-                    else {
+                    } else {
                         card.isOverdue = false;
                     }
                 }
-            }
-            else {
+            } else {
                 card.colNumber = 2;
                 card.returnReason = reason;
             }
