@@ -8,7 +8,8 @@ body {
     max-width: 1920px;
     margin: auto;
     font-family: Arial, sans-serif;
-    background-color: #ffffff;
+    background-color: #fbfaf9;
+    color: #1c1b1b;
 }
 
 h2 {
@@ -43,8 +44,9 @@ h2 {
     display: flex;
     flex-direction: column;
     width: 300px;
-    background-color: #f1f1f1;
+    background-color: #f1eeeb;
     border-radius: 10px;
+    border: 1px solid #dacac0;
 }
 
 .column h2 {
@@ -87,18 +89,21 @@ input[type="submit"] {
     padding: 10px 15px;
     border: none;
     border-radius: 10px;
-    background-color: rgb(202, 202, 202);
+    background-color: #dacac0;
 }
 
 button:hover, 
 input[type="submit"]:hover {
     cursor: pointer;
+    transform: scale(1.05);
+    transition: 0.2s;
 }
 
 textarea {
     resize: none;
     padding: 10px 15px;
     border-radius: 10px;
+    outline: none;
 }
 
 .card-form, .card-form div {
@@ -113,6 +118,7 @@ textarea {
     background-color: #ffffff;
     padding: 20px;
     border-radius: 10px;
+    border: 1px solid #dacac0;
 }
 
 .card > div {
