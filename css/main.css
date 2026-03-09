@@ -82,6 +82,9 @@ h2 {
 input {
     padding: 10px 15px;
     border-radius: 10px;
+    outline: none;
+    background-color: #fbfaf9;
+    border: 1px solid #dacac0;
 }
 
 button, 
@@ -104,6 +107,14 @@ textarea {
     padding: 10px 15px;
     border-radius: 10px;
     outline: none;
+    background-color: #fbfaf9;
+    border: 1px solid #dacac0;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+textarea:focus {
+    background-color: #ffffff;
 }
 
 .card-form, .card-form div {
