@@ -130,6 +130,7 @@ textarea:focus {
     padding: 20px;
     border-radius: 10px;
     border: 1px solid #dacac0;
+    word-break: break-word;
 }
 
 .card > div {
@@ -139,9 +140,9 @@ textarea:focus {
     align-items: center;
 }
 
-.card p, 
+.card p,
 .card h3 {
-    overflow-wrap: break-word; 
+    overflow-wrap: break-word;
 }
 
 .card-info {
