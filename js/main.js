@@ -1,6 +1,8 @@
 Vue.component('column', {
     template: `
-        <div class="column">
+        <div class="column" 
+             @dragover.prevent 
+             @drop="onColumnDrop">
             <h2 :class="color">{{ title }}</h2>
             <div class="column-content">
                 <div v-if="id === 1">
@@ -9,60 +11,87 @@ Vue.component('column', {
                         <card-form @card-submitted="onCardCreated"></card-form>
                     </div>
                 </div>
+                
+                <div v-if="id === 2 && showReturnForm" class="return-form">
+                    <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
+                    <p v-if="returnError" class="danger-text">{{ returnError }}</p>
+                    <button @click="confirmReturn">Подтвердить</button>
+                    <button @click="cancelReturn">Отмена</button>
+                </div>
+                
                 <card 
-                    v-for="card in cards" 
+                    v-for="(card, index) in cards" 
                     :key="card.id"
                     :card="card"
+                    :index="index"
                     @delete="handleDelete"
-                    @move="handleMove"
+                    @drag-start="handleDragStart"
+                    @drop-target="handleCardDrop"
                     @update-card="handleUpdate"
                 ></card>
             </div>
         </div>
     `,
     props: {
-        title: {
-            type: String,
-            required: true
-        },
-        cards: {
-            type: Array,
-            required: true
-        },
-        id: {
-            type: Number,
-            required: true
-        },
-        color: {
-            type: String
-        }
+        title: String,
+        cards: Array,
+        id: Number,
+        color: String,
+        returnMode: Boolean
     },
     data() {
         return {
-            showForm: false
+            showForm: false,
+            returnReasonText: '',
+            returnError: ''
+        }
+    },
+    computed: {
+        showReturnForm() {
+            return this.returnMode;
         }
     },
     methods: {
-        handleDelete(id) {
-            this.$emit('delete', id);
-        },
-        handleMove(payload) {
-            this.$emit('move', payload);
-        },
-        handleUpdate(updatedCard) {
-            this.$emit('update-card', updatedCard);
+        handleDelete(id) { this.$emit('delete', id); },
+        handleUpdate(card) { this.$emit('update-card', card); },
+        handleDragStart(card) { this.$emit('drag-start', card); },
+        handleCardDrop(targetCard) { this.$emit('drop-card', targetCard); },
+        
+        onColumnDrop(event) {
+            if (event.target.classList.contains('column') || event.target.classList.contains('column-content')) {
+                this.$emit('drop-column', this.id);
+            }
         },
         onCardCreated(card) {
             this.showForm = false;
             this.$emit('create-card', card);
+        },
+        confirmReturn() {
+            if (this.returnReasonText && this.returnReasonText.trim() !== '') {
+                this.$emit('confirm-return', this.returnReasonText);
+                this.returnReasonText = '';
+                this.returnError = '';
+            } else {
+                this.returnError = 'Поле обязательно для заполнения';
+            }
+        },
+        cancelReturn() {
+            this.$emit('cancel-return');
+            this.returnReasonText = '';
+            this.returnError = '';
         }
     }
 })
 
 Vue.component('card', {
     template: `
-        <div class="card">
-            <div v-if="!isEditing && !showReturnInput">
+        <div class="card" 
+             draggable="true" 
+             @dragstart="onDragStart" 
+             @drop.stop="onDrop"
+             @dragover.prevent
+             :data-index="index">
+            <div v-if="!isEditing">
                 <div class="card-info">
                     <h3>{{ card.title }}</h3>
                     <p>{{ card.description }}</p>
@@ -79,20 +108,8 @@ Vue.component('card', {
                 </div>
 
                 <div class="card-buttons">
-                    <button 
-                        @click="showReturnInput = true; returnReasonText = ''; returnError = ''"
-                        v-if="card.colNumber === 3"
-                    >
-                        &lt
-                    </button>
                     <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
                     <button @click="handleDelete" v-if="card.colNumber === 1">Удалить</button>
-                    <button 
-                        @click="handleMoveRight" 
-                        v-if="card.colNumber < 4"
-                    >
-                        &gt
-                    </button>
                 </div>
             </div>
 
@@ -103,59 +120,31 @@ Vue.component('card', {
                 ></card-form>
                 <button @click="isEditing=false">Отмена</button>
             </div>
-
-            <div v-else-if="showReturnInput" class="return-form">
-                <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
-                <p v-if="returnError" class="danger-text">{{ returnError }}</p>
-                <button @click="confirmReturn">Подтвердить</button>
-                <button @click="showReturnInput=false">Отмена</button>
-            </div>
         </div>
     `,
     props: {
-        card: {
-            type: Object,
-            required: true
-        }
+        card: Object,
+        index: Number
     },
     data() {
-        return {
-            isEditing: false,
-            showReturnInput: false,
-            returnReasonText: '',
-            returnError: ''
-        }
+        return { isEditing: false }
     },
     methods: {
+        onDragStart() {
+            this.$emit('drag-start', this.card);
+        },
+        onDrop() {
+            this.$emit('drop-target', this.card);
+        },
         handleDelete() {
             this.$emit('delete', this.card.id);
         },
-        handleMoveRight() {
-            this.$emit('move', { cardId: this.card.id, direction: 'right' });
-        },
         saveCard(updatedData) {
-            const updatedCard = Object.assign(
-                {},
-                this.card,
-                updatedData,
-                { lastEdited: new Date().toLocaleString() }
-            );
+            const updatedCard = Object.assign({}, this.card, updatedData, { 
+                lastEdited: new Date().toLocaleString() 
+            });
             this.$emit('update-card', updatedCard);
             this.isEditing = false;
-        },
-        confirmReturn() {
-            if (this.returnReasonText && this.returnReasonText.trim() !== '') {
-                this.$emit('move', {
-                    cardId: this.card.id,
-                    direction: 'left',
-                    reason: this.returnReasonText
-                });
-                this.showReturnInput = false;
-                this.returnError = '';
-            }
-            else {
-                this.returnError = 'Поле обязательно для заполнения';
-            }
         }
     }
 })
@@ -167,25 +156,19 @@ Vue.component('card-form', {
                 <label for="title">Название задачи</label>
                 <input type="text" id="title" v-model="title" required>
             </div>
-
             <div>
                 <label for="description">Описание задачи</label>
                 <textarea id="description" v-model="description" required></textarea>
             </div>
-
             <div>
                 <label for="deadline">Дэдлайн</label>
                 <input type="date" id="deadline" v-model="deadline" required>
             </div>
-
             <input type="submit" value="Сохранить">
         </form>
     `,
     props: {
-        initialCard: {
-            type: Object,
-            default: null
-        }
+        initialCard: { type: Object, default: null }
     },
     data() {
         return {
@@ -202,8 +185,7 @@ Vue.component('card-form', {
                     description: this.description,
                     deadline: this.deadline
                 });
-            }
-            else {
+            } else {
                 let card = {
                     title: this.title,
                     description: this.description,
@@ -234,10 +216,15 @@ Vue.component('board', {
                     :id="col.id"
                     :color="col.color"
                     :cards="cards.filter(card => card.colNumber === col.id)"
+                    :return-mode="isReturnMode && col.id === 2"
                     @delete="deleteCard"
-                    @move="moveCard"
                     @create-card="addCard"
                     @update-card="updateCard"
+                    @drag-start="onDragStart"
+                    @drop-card="onDropCard"
+                    @drop-column="onDropColumn"
+                    @confirm-return="processReturn"
+                    @cancel-return="cancelReturn"
                 ></column>
             </div>
         </div>
@@ -250,7 +237,9 @@ Vue.component('board', {
                 { id: 2, title: 'Задачи в работе', color: 'col-work' },
                 { id: 3, title: 'Тестирование', color: 'col-test' },
                 { id: 4, title: 'Выполненные задачи', color: 'col-done' }
-            ]
+            ],
+            draggedCard: null,
+            isReturnMode: false
         }
     },
     mounted() {
@@ -276,25 +265,92 @@ Vue.component('board', {
         updateCard(updatedCard) {
             const index = this.cards.findIndex(c => c.id === updatedCard.id);
             if (index !== -1) {
-                const newCards = [...this.cards];
-                newCards[index] = updatedCard;
-                this.cards = newCards;
+                this.$set(this.cards, index, updatedCard);
             }
         },
-        moveCard(payload) {
-            const { cardId, direction, reason } = payload;
-            const card = this.cards.find(c => c.id === cardId);
+        onDragStart(card) {
+            this.draggedCard = card;
+        },
+        onDropCard(targetCard) {
+            if (!this.draggedCard || this.draggedCard === targetCard) return;
 
-            if (direction === 'right') {
-                card.colNumber++;
-                if (card.colNumber === 4) {
-                    const today = new Date().toISOString().split('T')[0];
-                    card.isOverdue = today > card.deadline;
-                }
+            const fromCol = this.draggedCard.colNumber;
+            const toCol = targetCard.colNumber;
+
+            if (fromCol === 3 && toCol === 2) {
+                this.isReturnMode = true;
+                return;
             }
-            else {
-                card.colNumber = 2;
-                card.returnReason = reason;
+
+            if (fromCol === toCol || toCol === fromCol + 1) {
+                this.moveCard(targetCard, toCol);
+            }
+        },
+        onDropColumn(colId) {
+            if (!this.draggedCard) return;
+            const fromCol = this.draggedCard.colNumber;
+
+            if (fromCol === 3 && colId === 2) {
+                this.isReturnMode = true;
+                return;
+            }
+
+            if (fromCol === colId || colId === fromCol + 1) {
+                this.draggedCard.colNumber = colId;
+                this.checkOverdue(this.draggedCard);
+                
+                const index = this.cards.indexOf(this.draggedCard);
+                this.cards.splice(index, 1);
+                this.cards.push(this.draggedCard);
+                
+                this.draggedCard = null;
+            }
+        },
+        moveCard(targetCard, newColId) {
+            const draggedIndex = this.cards.indexOf(this.draggedCard);
+            const targetIndex = this.cards.indexOf(targetCard);
+            
+            this.cards.splice(draggedIndex, 1);
+            
+            const newTargetIndex = this.cards.indexOf(targetCard);
+            if (draggedIndex < targetIndex) {
+                this.cards.splice(newTargetIndex + 1, 0, this.draggedCard);
+            } else {
+                this.cards.splice(newTargetIndex, 0, this.draggedCard);
+            }
+
+            this.draggedCard.colNumber = newColId;
+            this.draggedCard.returnReason = null;
+            this.checkOverdue(this.draggedCard);
+            
+            this.draggedCard = null;
+        },
+        processReturn(reason) {
+            this.draggedCard.returnReason = reason;
+            this.draggedCard.colNumber = 2;
+            
+            const index = this.cards.indexOf(this.draggedCard);
+            this.cards.splice(index, 1);
+            
+            const firstCol2Card = this.cards.find(c => c.colNumber === 2);
+            if (firstCol2Card) {
+                const targetIndex = this.cards.indexOf(firstCol2Card);
+                this.cards.splice(targetIndex, 0, this.draggedCard);
+            } else {
+                this.cards.push(this.draggedCard);
+            }
+
+            this.isReturnMode = false;
+            this.draggedCard = null;
+        },
+        cancelReturn() {
+            this.isReturnMode = false;
+            this.draggedCard = null;
+        },
+        checkOverdue(card) {
+            if (card.colNumber === 4) {
+                const today = new Date().toISOString().split('T')[0];
+                card.isOverdue = today > card.deadline;
             }
         }
     }
