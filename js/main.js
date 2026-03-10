@@ -289,13 +289,10 @@ Vue.component('board', {
                 card.colNumber++;
                 if (card.colNumber === 4) {
                     const today = new Date().toISOString().split('T')[0];
-                    if (today > card.deadline) {
-                        card.isOverdue = true;
-                    } else {
-                        card.isOverdue = false;
-                    }
+                    card.isOverdue = today > card.deadline;
                 }
-            } else {
+            }
+            else {
                 card.colNumber = 2;
                 card.returnReason = reason;
             }
