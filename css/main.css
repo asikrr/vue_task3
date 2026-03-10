@@ -127,17 +127,11 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     background-color: #ffffff;
+    gap: 10px;
     padding: 20px;
     border-radius: 10px;
     border: 1px solid #dacac0;
     word-break: break-word;
-}
-
-.card > div {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
 }
 
 .card p,
@@ -163,4 +157,37 @@ textarea:focus {
 
 .danger-text {
     color: #c23926;
+}
+
+.modal-mask {
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-container {
+    width: 300px;
+    background-color: #fff;
+    border: 1px solid #dacac0;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }

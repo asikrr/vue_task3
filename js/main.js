@@ -1,37 +1,89 @@
+Vue.component('modal', {
+    template: `
+    <div class="modal-mask">
+        <div class="modal-container">
+            <slot></slot>
+        </div>
+    </div>
+`
+})
+
+Vue.component('card-form', {
+    template: `
+    <form class="card-form" @submit.prevent="onSubmit">
+        <div>
+            <label for="title">Название задачи</label>
+            <input type="text" id="title" v-model="title" required>
+        </div>
+        <div>
+            <label for="description">Описание задачи</label>
+            <textarea id="description" v-model="description" required></textarea>
+        </div>
+        <div>
+            <label for="deadline">Дэдлайн</label>
+            <input type="date" id="deadline" v-model="deadline" required>
+        </div>
+        <div class="form-buttons">
+            <input type="submit" value="Сохранить">
+            <button type="button" @click="$emit('cancel')">Отмена</button>
+        </div>
+    </form>
+`,
+    props: {
+        initialCard: {
+            type: Object,
+            default: null
+        }
+    },
+    data() {
+        return {
+            title: this.initialCard ? this.initialCard.title : '',
+            description: this.initialCard ? this.initialCard.description : '',
+            deadline: this.initialCard ? this.initialCard.deadline : ''
+        }
+    },
+    methods: {
+        onSubmit() {
+            this.$emit('card-submitted', {
+                title: this.title,
+                description: this.description,
+                deadline: this.deadline
+            });
+        }
+    }
+})
+
 Vue.component('column', {
     template: `
-        <div class="column" 
-             @dragover.prevent 
-             @drop="onColumnDrop">
-            <h2 :class="color">{{ title }}</h2>
-            <div class="column-content">
-                <div v-if="id === 1">
-                    <button v-if="!showForm" @click="showForm=true">Создать задачу</button>
-                    <div v-else>
-                        <card-form @card-submitted="onCardCreated"></card-form>
-                    </div>
-                </div>
-                
-                <div v-if="id === 2 && showReturnForm" class="return-form">
-                    <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
-                    <p v-if="returnError" class="danger-text">{{ returnError }}</p>
-                    <button @click="confirmReturn">Подтвердить</button>
-                    <button @click="cancelReturn">Отмена</button>
-                </div>
-                
-                <card 
-                    v-for="(card, index) in cards" 
-                    :key="card.id"
-                    :card="card"
-                    :index="index"
-                    @delete="handleDelete"
-                    @drag-start="handleDragStart"
-                    @drop-target="handleCardDrop"
-                    @update-card="handleUpdate"
-                ></card>
+    <div class="column" 
+            @dragover.prevent 
+            @drop="onColumnDrop">
+        <h2 :class="color">{{ title }}</h2>
+        <div class="column-content">
+            <div v-if="id === 1">
+                <button @click="$emit('request-create')">Создать задачу</button>
             </div>
+            
+            <div v-if="id === 2 && showReturnForm" class="return-form">
+                <textarea v-model="returnReasonText" placeholder="Причина возврата"></textarea>
+                <p v-if="returnError" class="danger-text">{{ returnError }}</p>
+                <button @click="confirmReturn">Подтвердить</button>
+                <button @click="cancelReturn">Отмена</button>
+            </div>
+            
+            <card 
+                v-for="(card, index) in cards" 
+                :key="card.id"
+                :card="card"
+                :index="index"
+                @delete="handleDelete"
+                @drag-start="handleDragStart"
+                @drop-target="handleCardDrop"
+                @request-edit="handleRequestEdit"
+            ></card>
         </div>
-    `,
+    </div>
+`,
     props: {
         title: String,
         cards: Array,
@@ -41,7 +93,6 @@ Vue.component('column', {
     },
     data() {
         return {
-            showForm: false,
             returnReasonText: '',
             returnError: ''
         }
@@ -52,26 +103,30 @@ Vue.component('column', {
         }
     },
     methods: {
-        handleDelete(id) { this.$emit('delete', id); },
-        handleUpdate(card) { this.$emit('update-card', card); },
-        handleDragStart(card) { this.$emit('drag-start', card); },
-        handleCardDrop(targetCard) { this.$emit('drop-card', targetCard); },
-        
+        handleDelete(id) {
+            this.$emit('delete', id);
+        },
+        handleDragStart(card) {
+            this.$emit('drag-start', card);
+        },
+        handleCardDrop(targetCard) {
+            this.$emit('drop-card', targetCard);
+        },
+        handleRequestEdit(card) {
+            this.$emit('request-edit', card);
+        },
         onColumnDrop(event) {
             if (event.target.classList.contains('column') || event.target.classList.contains('column-content')) {
                 this.$emit('drop-column', this.id);
             }
-        },
-        onCardCreated(card) {
-            this.showForm = false;
-            this.$emit('create-card', card);
         },
         confirmReturn() {
             if (this.returnReasonText && this.returnReasonText.trim() !== '') {
                 this.$emit('confirm-return', this.returnReasonText);
                 this.returnReasonText = '';
                 this.returnError = '';
-            } else {
+            } 
+            else {
                 this.returnError = 'Поле обязательно для заполнения';
             }
         },
@@ -85,49 +140,36 @@ Vue.component('column', {
 
 Vue.component('card', {
     template: `
-        <div class="card" 
-             draggable="true" 
-             @dragstart="onDragStart" 
-             @drop.stop="onDrop"
-             @dragover.prevent
-             :data-index="index">
-            <div v-if="!isEditing">
-                <div class="card-info">
-                    <h3>{{ card.title }}</h3>
-                    <p>{{ card.description }}</p>
-                    <p>Дэдлайн: {{ card.deadline }}</p>
-                    <p>Создано: {{ card.creationDate }}</p>
-                    <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
-                    <p v-if="card.returnReason && card.colNumber === 2">
-                        Причина возврата: {{ card.returnReason }}
-                    </p>
-                    <div v-if="card.colNumber === 4">
-                        <p v-if="card.isOverdue" class="danger-text">Просрочена</p>
-                        <p v-else class="safe-text">Выполнена в срок</p>
-                    </div>
-                </div>
-
-                <div class="card-buttons">
-                    <button @click="isEditing=true" v-if="card.colNumber != 4">Редактировать</button>
-                    <button @click="handleDelete" v-if="card.colNumber === 1">Удалить</button>
-                </div>
-            </div>
-
-            <div v-else-if="isEditing" class="edit-form">
-                <card-form 
-                    :initial-card="card"
-                    @card-submitted="saveCard"
-                ></card-form>
-                <button @click="isEditing=false">Отмена</button>
+    <div class="card" 
+            draggable="true" 
+            @dragstart="onDragStart" 
+            @drop.stop="onDrop"
+            @dragover.prevent
+            :data-index="index">
+        <div class="card-info">
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.description }}</p>
+            <p>Дэдлайн: {{ card.deadline }}</p>
+            <p>Создано: {{ card.creationDate }}</p>
+            <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
+            <p v-if="card.returnReason && card.colNumber === 2">
+                Причина возврата: {{ card.returnReason }}
+            </p>
+            <div v-if="card.colNumber === 4">
+                <p v-if="card.isOverdue" class="danger-text">Просрочена</p>
+                <p v-else class="safe-text">Выполнена в срок</p>
             </div>
         </div>
-    `,
+
+        <div class="card-buttons">
+            <button @click="$emit('request-edit', card)" v-if="card.colNumber != 4">Редактировать</button>
+            <button @click="handleDelete" v-if="card.colNumber === 1">Удалить</button>
+        </div>
+    </div>
+`,
     props: {
         card: Object,
         index: Number
-    },
-    data() {
-        return { isEditing: false }
     },
     methods: {
         onDragStart() {
@@ -138,97 +180,43 @@ Vue.component('card', {
         },
         handleDelete() {
             this.$emit('delete', this.card.id);
-        },
-        saveCard(updatedData) {
-            const updatedCard = Object.assign({}, this.card, updatedData, { 
-                lastEdited: new Date().toLocaleString() 
-            });
-            this.$emit('update-card', updatedCard);
-            this.isEditing = false;
-        }
-    }
-})
-
-Vue.component('card-form', {
-    template: `
-        <form class="card-form" @submit.prevent="onSubmit">
-            <div>
-                <label for="title">Название задачи</label>
-                <input type="text" id="title" v-model="title" required>
-            </div>
-            <div>
-                <label for="description">Описание задачи</label>
-                <textarea id="description" v-model="description" required></textarea>
-            </div>
-            <div>
-                <label for="deadline">Дэдлайн</label>
-                <input type="date" id="deadline" v-model="deadline" required>
-            </div>
-            <input type="submit" value="Сохранить">
-        </form>
-    `,
-    props: {
-        initialCard: { type: Object, default: null }
-    },
-    data() {
-        return {
-            title: this.initialCard ? this.initialCard.title : '',
-            description: this.initialCard ? this.initialCard.description : '',
-            deadline: this.initialCard ? this.initialCard.deadline : ''
-        }
-    },
-    methods: {
-        onSubmit() {
-            if (this.initialCard) {
-                this.$emit('card-submitted', {
-                    title: this.title,
-                    description: this.description,
-                    deadline: this.deadline
-                });
-            } else {
-                let card = {
-                    title: this.title,
-                    description: this.description,
-                    deadline: this.deadline,
-                    creationDate: new Date().toLocaleString(),
-                    id: Date.now(),
-                    colNumber: 1,
-                    returnReason: null,
-                    isOverdue: false
-                }
-                this.$emit('card-submitted', card);
-                this.title = '';
-                this.description = '';
-                this.deadline = '';
-            }
         }
     }
 })
 
 Vue.component('board', {
     template: `
-        <div class="board">
-            <h1>Kanban-доска</h1>
-            <div class="columns">
-                <column 
-                    v-for="col in columns" 
-                    :title="col.title" 
-                    :id="col.id"
-                    :color="col.color"
-                    :cards="cards.filter(card => card.colNumber === col.id)"
-                    :return-mode="isReturnMode && col.id === 2"
-                    @delete="deleteCard"
-                    @create-card="addCard"
-                    @update-card="updateCard"
-                    @drag-start="onDragStart"
-                    @drop-card="onDropCard"
-                    @drop-column="onDropColumn"
-                    @confirm-return="processReturn"
-                    @cancel-return="cancelReturn"
-                ></column>
-            </div>
+    <div class="board">
+        <h1>Kanban-доска</h1>
+        <div class="columns">
+            <column 
+                v-for="col in columns" 
+                :title="col.title" 
+                :id="col.id"
+                :color="col.color"
+                :cards="cards.filter(card => card.colNumber === col.id)"
+                :return-mode="isReturnMode && col.id === 2"
+                @delete="deleteCard"
+                @request-create="openCreateModal"
+                @request-edit="openEditModal"
+                @drag-start="onDragStart"
+                @drop-card="onDropCard"
+                @drop-column="onDropColumn"
+                @confirm-return="processReturn"
+                @cancel-return="cancelReturn"
+            ></column>
         </div>
-    `,
+
+        <modal v-if="showModal">
+            <h3>{{ editingCard ? 'Редактирование' : 'Создание задачи' }}</h3>
+            <card-form 
+                :initial-card="editingCard"
+                @card-submitted="handleFormSubmit"
+                @cancel="closeModal"
+            ></card-form>
+        </modal>
+    </div>
+`,
     data() {
         return {
             cards: [],
@@ -239,7 +227,9 @@ Vue.component('board', {
                 { id: 4, title: 'Выполненные задачи', color: 'col-done' }
             ],
             draggedCard: null,
-            isReturnMode: false
+            isReturnMode: false,
+            showModal: false,
+            editingCard: null
         }
     },
     mounted() {
@@ -256,17 +246,45 @@ Vue.component('board', {
         }
     },
     methods: {
-        addCard(card) {
-            this.cards.unshift(card);
+        openCreateModal() {
+            this.editingCard = null;
+            this.showModal = true;
+        },
+        openEditModal(card) {
+            this.editingCard = card;
+            this.showModal = true;
+        },
+        closeModal() {
+            this.showModal = false;
+            this.editingCard = null;
+        },
+        handleFormSubmit(data) {
+            if (this.editingCard) {
+                const updatedCard = Object.assign({}, this.editingCard, data, {
+                    lastEdited: new Date().toLocaleString()
+                });
+                const index = this.cards.findIndex(c => c.id === updatedCard.id);
+                if (index !== -1) {
+                    this.$set(this.cards, index, updatedCard);
+                }
+            } 
+            else {
+                const newCard = {
+                    title: data.title,
+                    description: data.description,
+                    deadline: data.deadline,
+                    creationDate: new Date().toLocaleString(),
+                    id: Date.now(),
+                    colNumber: 1,
+                    returnReason: null,
+                    isOverdue: false
+                };
+                this.cards.unshift(newCard);
+            }
+            this.closeModal();
         },
         deleteCard(id) {
             this.cards = this.cards.filter(card => card.id !== id);
-        },
-        updateCard(updatedCard) {
-            const index = this.cards.findIndex(c => c.id === updatedCard.id);
-            if (index !== -1) {
-                this.$set(this.cards, index, updatedCard);
-            }
         },
         onDragStart(card) {
             this.draggedCard = card;
@@ -298,45 +316,44 @@ Vue.component('board', {
             if (fromCol === colId || colId === fromCol + 1) {
                 this.draggedCard.colNumber = colId;
                 this.checkOverdue(this.draggedCard);
-                
+
                 const index = this.cards.indexOf(this.draggedCard);
                 this.cards.splice(index, 1);
                 this.cards.push(this.draggedCard);
-                
+
                 this.draggedCard = null;
             }
         },
         moveCard(targetCard, newColId) {
             const draggedIndex = this.cards.indexOf(this.draggedCard);
             const targetIndex = this.cards.indexOf(targetCard);
-            
             this.cards.splice(draggedIndex, 1);
-            
             const newTargetIndex = this.cards.indexOf(targetCard);
+
             if (draggedIndex < targetIndex) {
                 this.cards.splice(newTargetIndex + 1, 0, this.draggedCard);
-            } else {
+            } 
+            else {
                 this.cards.splice(newTargetIndex, 0, this.draggedCard);
             }
 
             this.draggedCard.colNumber = newColId;
             this.draggedCard.returnReason = null;
             this.checkOverdue(this.draggedCard);
-            
             this.draggedCard = null;
         },
         processReturn(reason) {
             this.draggedCard.returnReason = reason;
             this.draggedCard.colNumber = 2;
-            
             const index = this.cards.indexOf(this.draggedCard);
             this.cards.splice(index, 1);
-            
+
             const firstCol2Card = this.cards.find(c => c.colNumber === 2);
             if (firstCol2Card) {
                 const targetIndex = this.cards.indexOf(firstCol2Card);
                 this.cards.splice(targetIndex, 0, this.draggedCard);
-            } else {
+            } 
+            else {
                 this.cards.push(this.draggedCard);
             }
 
