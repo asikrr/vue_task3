@@ -152,7 +152,7 @@ Vue.component('card', {
             <p>Дэдлайн: {{ card.deadline }}</p>
             <p>Создано: {{ card.creationDate }}</p>
             <p v-if="card.lastEdited">Последнее редактирование: {{ card.lastEdited }}</p>
-            <p v-if="card.returnReason && card.colNumber === 2">
+            <p v-if="card.returnReason">
                 Причина возврата: {{ card.returnReason }}
             </p>
             <div v-if="card.colNumber === 4">
@@ -337,9 +337,13 @@ Vue.component('board', {
                 this.cards.splice(newTargetIndex, 0, this.draggedCard);
             }
 
+            const oldColId = this.draggedCard.colNumber;
             this.draggedCard.colNumber = newColId;
-            this.draggedCard.returnReason = null;
-            this.checkOverdue(this.draggedCard);
+
+            if (newColId > oldColId && newColId === 4) {
+                this.checkOverdue(this.draggedCard);
+            }
+
             this.draggedCard = null;
         },
         processReturn(reason) {
